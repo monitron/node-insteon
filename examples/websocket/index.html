@@ -3,31 +3,95 @@
 	<head>
 		<title>insteon websocket example</title>
 	</head>
+	<style type="text/css">
+		#log{
+			clear: left;
+			float: left;
+			width: 50em;
+			border: 1px solid gray;
+			height: 20em;
+			margin: 0;
+			overflow-x: hidden;
+			overflow-y: scroll;
+		}
+		#lightbulb{
+			margin-left: 2em;
+			width: 128px; height: 128px;
+			cursor: pointer;
+		}
+
+	</style>
 	<body>
 		<input type="text" id="what" value="0260" /><button onclick="send()">send</button>
-		<pre id="log"></pre>
+		<div>
+			<pre id="log"></pre>
+			<img onclick="light_toggle()" id="lightbulb" src="light_bulb.png" />
+		</div>
 		<script type="text/javascript">
+
+			//the light_* functions are just for the demo kit lamp module.
+			//they change the status of the lightbulb icon.  These are not
+			//good as they're statically defined.  but they provide a pretty
+			//demonstration for our purposes.
+			function light_toggle(){
+				var dom = document.getElementById("lightbulb")
+				if(dom.src.indexOf("light_bulb.png") != -1){
+					//light is on; send turn-off command.
+					ws.send("0262111111051300")
+				}else{
+					console.log(dom.src)
+					ws.send("02621111110511FF")
+				}
+			}
+			function light_on(){
+				var dom = document.getElementById("lightbulb")
+				dom.src = "light_bulb.png"
+			}
+			function light_off(){
+				var dom = document.getElementById("lightbulb")
+				dom.src = "light_bulb_off.png"
+			}
+			function pad(n){
+				if(n < 10) return "0" + n
+				return n
+			}
 			function send(){
 				var what = document.getElementById("what").value
+				var r = new RegExp('-', 'g');what = what.replace(r, '')
 				ws.send(what)
 				//document.getElementById("what").value = ""
 				document.getElementById("what").focus()
 			}
-
+			function log(line){
+				var dom = document.getElementById("log")
+				var d = new Date()
+				dom.innerHTML += pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + "> "
+				dom.innerHTML += line + "\n"
+				dom.scrollTop = dom.scrollHeight //auto scroll to bottom.
+			}
 			var ws = new WebSocket("ws://localhost:8080", "insteon-protocol")
 			ws.onopen = function(){
-				document.getElementById("log").innerHTML += "Connection opened\n"
+				log("Connection opened")
 			}
 			ws.onclose = function(){
-				document.getElementById("log").innerHTML += "Connection closed\n"
+				log("Connection closed")
 			}
 			ws.onerror = function(e){
-				document.getElementById("log").innerHTML += "Error: " + e + "\n"
+				log("Error: " + e)
 			}
 			ws.onmessage = function(m){
-				document.getElementById("log").innerHTML += m.data + "\n"
-				console.log("received: " + m.data)
-				console.log(m)
+				log(m.data)
+				//This is not ideal as we don't want to statically define everything.  but for now, we just want
+				//to see the lightbulb icon turn on and off, and this accomplishes that!
+				if(m.data == 'Received from PLM: 02-50-11-11-11-00-00-01-cb-11-00' || 
+				   m.data == 'Received from PLM: 02-50-11-11-11-aa-aa-aa-21-11-ff' ||
+				   m.data == 'Received from PLM: 02-50-11-11-11-aa-aa-aa-21-00-ff') light_on()
+				if(m.data == 'Received from PLM: 02-50-11-11-11-00-00-01-cb-13-00' ||
+				   m.data == 'Received from PLM: 02-50-11-11-11-aa-aa-aa-21-13-00' ||
+				   m.data == 'Received from PLM: 02-50-11-11-11-aa-aa-aa-21-00-00') light_off()
+				if(window.console && console.log){
+					console.log(m)
+				}
 			}
 			ws.on
 		</script>

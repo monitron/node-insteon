@@ -26,9 +26,18 @@ var sp = new serialport(port, {
 
 var connections = [] //a collection of all our websocket clients.
 
+function pad(n){
+	if(n < 10) return "0"+n
+	return n
+}
 sp.on('data', function(data) {
-    console.log("    Received from PLM: " + data)
-    sendReply("Received from PLM: " + data)
+	var str = ""
+	for(i in data){
+		str += pad(parseInt(data[i], 10).toString(16)) + '-'
+	}
+	str = str.substring(0, str.length-1) //strip trailing '-'
+    console.log("    Received from PLM: " + str)
+    sendReply("Received from PLM: " + str)
 })
 
 var server = http.createServer(); server.listen(8080, function() {
@@ -42,6 +51,21 @@ server.on('request', function(request, response) {
     	response.statusCode = 404
     	response.write("404 - not found")
     	response.end()
+    }else if(request.url == "/light_bulb.png" || request.url == "/light_bulb_off.png"){
+		
+		response.statusCode = 200
+		response.setHeader("Content-type", "image/png")
+		
+ 		var file_stream = fs.createReadStream(path + request.url)
+ 		file_stream.on("error", function(exception) {
+   			console.error("Error reading file: ", exception);
+ 		})
+ 		file_stream.on("data", function(data) {
+   			response.write(data)
+ 		})
+ 		file_stream.on("close", function() {
+   			response.end()
+ 		})
     }else{
 	    response.statusCode = 200
 	    response.setHeader("Content-type", "text/html")
@@ -116,7 +140,7 @@ wsServer.on('request', function(request) {
     connection.on('message', function(message) {
         if(message.type === 'utf8'){
             console.log('Received Message: ' + message.utf8Data)
-			sendReply("Received request: " + message.utf8Data)
+			sendReply("Received request: " + message.utf8Data + " from " + connection.remoteAddress)
             try{
 				sp.write(new Buffer(message.utf8Data, 'hex'), writeCallback)
 			}catch(e){

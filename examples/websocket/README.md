@@ -27,4 +27,4 @@ Before starting the server, you need to edit the example so that it uses the cor
 4 - Browse
 ---------
 
-Now open a webbrowser (that supports websockets) and browse to [localhost:8080](http://localhost:8080).
+Now open a webbrowser (that supports websockets) and browse to [localhost:8080](http://localhost:8080).  See [this demonstration](http://youtu.be/TMzlQQOwhfI)
