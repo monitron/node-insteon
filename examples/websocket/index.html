@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>insteon websocket example</title>
+	</head>
+	<body>
+		<input type="text" id="what" value="0260" /><button onclick="send()">send</button>
+		<pre id="log"></pre>
+		<script type="text/javascript">
+			function send(){
+				var what = document.getElementById("what").value
+				ws.send(what)
+				//document.getElementById("what").value = ""
+				document.getElementById("what").focus()
+			}
+
+			var ws = new WebSocket("ws://localhost:8080", "insteon-protocol")
+			ws.onopen = function(){
+				document.getElementById("log").innerHTML += "Connection opened\n"
+			}
+			ws.onclose = function(){
+				document.getElementById("log").innerHTML += "Connection closed\n"
+			}
+			ws.onerror = function(e){
+				document.getElementById("log").innerHTML += "Error: " + e + "\n"
+			}
+			ws.onmessage = function(m){
+				document.getElementById("log").innerHTML += m.data + "\n"
+				console.log("received: " + m.data)
+				console.log(m)
+			}
+			ws.on
+		</script>
+	</body>
+</html>
