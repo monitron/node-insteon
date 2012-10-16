@@ -5,12 +5,7 @@ This example shows how to create a websocket server to communicate with an Inste
 
 1 - Install
 ----------
-Note that this will not currently work; the insteon module provided does not include this websocket example.  But eventually, it should be this easy.  Until then, after installing the insteon module, you must manually drop the websocket directory into the examples.
-
-	npm install serialport
-	npm install insteon
-	npm install websocket
-	npm install http
+see the master README of this branch.
 
 2 - Edit
 -------

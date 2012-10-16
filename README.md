@@ -27,6 +27,7 @@ This has been tested with the following environments and devices:
   * PowerLinc USB Modem (not wireless) ([#2412U](http://www.smarthome.com/2412U/PowerLinc-INSTEON-Modem-USB/p.aspx))
   * PowerLinc USB Dual Band Modem ([#2413U](http://www.smarthome.com/2413U/PowerLinc-Modem-INSTEON-USB-Interface-Dual-Band/p.aspx))
 
+
 * Linux
   * #2413S: Recent verisions of Ubuntu and Fedora have been tested; this device is available via standard COM ports (ie `/dev/ttyS0`) or USB serial port adapters (ie `/dev/ttyUSB0`)
   * #2448A7: not tested
