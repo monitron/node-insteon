@@ -1,24 +1,17 @@
-Insteon Parser
-==============
-
-A node based INSTEON controller for sending and receiving INSTEON commands including a standalone parser for an INSTEON Power Line Modem (PLM) to build your own controller.
-
-Features
---------
-	* implements PLM request/response model
-	* message queue
-	* retry mechanism
-	* reconnect mechanism
+Node.JS Insteon Communication Driver
+====================================
 
 
 Install
 -------
+This is a developmental branch; it is not published to npm.  You must checkout the correct branch using git.
+
 	npm install serialport
-	npm install insteon
+	git clone git://github.com/secesh/node-insteon.git node_modules/insteon -b websocket
 
 How to Use
 ----------
-See examples
+See examples/websocket
 
 Experimental
 ------------
@@ -28,21 +21,25 @@ Connection Tips
 ---------------
 This has been tested with the following environments and devices:
 
-PowerLinc Serial Dual Band Modem (#2413S) connected to Ubuntu 11.10 via Windows 7 host VMWare Player. 
-* As long as the VM recognizes the host serial port, you should be able to connect using port "/dev/ttyS0"
-	
-PowerLinc Portable USB (#2448A7) connected to MacBook Air OSX 10.7.4. 
-* To activate the USB, must install the MAC OSX drivers:
-	http://www.ftdichip.com/Drivers/VCP.htm
-	http://www.ftdichip.com/Support/Documents/AppNotes/AN_134_FTDI_Drivers_Installation_Guide_for_MAC_OSX.pdf
-* Once installed, you should be able to connect using a port similar to "/dev/tty.usbserial-A8006Xpl"
+* Devices
+  * PowerLinc Serial Dual Band Modem ([#2413S](http://www.smarthome.com/2413S/PowerLinc-Modem-INSTEON-Serial-Interface-Dual-Band/p.aspx))
+  * PowerLinc Portable USB (wireless only) ([#2448A7](http://www.smarthome.com/2448A7/INSTEON-Portable-USB-Adapter/p.aspx))
+  * PowerLinc USB Modem (not wireless) ([#2412U](http://www.smarthome.com/2412U/PowerLinc-INSTEON-Modem-USB/p.aspx))
+  * PowerLinc USB Dual Band Modem ([#2413U](http://www.smarthome.com/2413U/PowerLinc-Modem-INSTEON-USB-Interface-Dual-Band/p.aspx))
 
-PowerLinc USB Modem (#2412U) connected to Ubuntu 11.10 via Windows 7 host VMWare Player.
-* To activate the USB drivers, must install the Windows drivers:
-	http://www.ftdichip.com/Drivers/VCP.htm
-* Once installed, and the VM recognized the host USB port, you should be able to connect using port "/dev/USBS0"
-
-Note, others reported needing to comment out "parity" and "flowcontrol" for theirs to work (#2413U). 
+* Linux
+  * #2413S: Recent verisions of Ubuntu and Fedora have been tested; this device is available via standard COM ports (ie `/dev/ttyS0`) or USB serial port adapters (ie `/dev/ttyUSB0`)
+  * #2448A7: not tested
+  * #2412U: not tested
+  * #2413U: not tested
+* Ubuntu running from VMWare Player on a Windows 7 host
+  * #2413S: As long as windows recognizes the COM port, this should work using standard COM ports (ie `/dev/ttyS0`)
+  * #2448A7: not tested
+  * #2412U: First install [the drivers](http://www.ftdichip.com/Drivers/VCP.htm) in the Windows host.  Then the device is available on a port such as `/dev/USBS0`
+  * #2413U: not tested
+* OSX (MacBook Air)
+  * #2413S: not tested
+  * #2448A7: First install [the drivers](http://www.ftdichip.com/Drivers/VCP.htm) according to [the install guide](http://www.ftdichip.com/Support/Documents/AppNotes/AN_134_FTDI_Drivers_Installation_Guide_for_MAC_OSX.pdf).  Then the device should be available on a port such as `/dev/tty.usbserial-A8006Xpl`
 
 License
 -------
