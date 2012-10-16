@@ -5,7 +5,7 @@ This example shows how to create a websocket server to communicate with an Inste
 
 1 - Install
 ----------
-see the master README of this branch.
+see the master [README](https://github.com/secesh/node-insteon/tree/websocket) of this branch.
 
 2 - Edit
 -------
