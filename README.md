@@ -32,11 +32,13 @@ This has been tested with the following environments and devices:
   * #2448A7: not tested
   * #2412U: not tested
   * #2413U: not tested
+
 **Ubuntu running from VMWare Player on a Windows 7 host**
   * #2413S: As long as windows recognizes the COM port, this should work using standard COM ports (ie `/dev/ttyS0`)
   * #2448A7: not tested
   * #2412U: First install [the drivers](http://www.ftdichip.com/Drivers/VCP.htm) in the Windows host.  Then the device is available on a port such as `/dev/USBS0`
   * #2413U: not tested
+
 **OSX (MacBook Air)**
   * #2413S: not tested
   * #2448A7: First install [the drivers](http://www.ftdichip.com/Drivers/VCP.htm) according to [the install guide](http://www.ftdichip.com/Support/Documents/AppNotes/AN_134_FTDI_Drivers_Installation_Guide_for_MAC_OSX.pdf).  Then the device should be available on a port such as `/dev/tty.usbserial-A8006Xpl`
