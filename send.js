@@ -18,6 +18,13 @@ var sendRawSerial = exports.sendRawSerial = function sendRawSerial(data) {
     config.sp.write(buf);
 };
 
+exports.sendCommand = function sendCommand(c, cb) {
+    // console.log(config)
+    // process.exit()
+    console.log('sendCommand::write> '+c)
+    config.sp.write(new Buffer(c, "hex"), cb)
+}
+
 /*
 ** send: adds a serial command to the transaction queue
 */
