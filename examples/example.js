@@ -3,13 +3,14 @@ var port = "/dev/ttyUSB0"
 
 
 //There is not currently any intelligence regarding this connection.
-//It does not verify a PLM is conencted to the port before sending any 
+//It does not verify a PLM is connected to the port before sending any 
 //queued messaged; once the port is open, queued messages are sent.
 //It does not offer callbacks for failures/otherwise.
-insteon.connect({port:port})
-
-//The following line would turn off logging.
-//insteon.logger(function(data){})
+insteon.connect({
+	port:port
+	//uncommenting the following line will disable logging (don't forget comma above).
+	//logger: function(data, source, message){}
+})
 
 sentCallback = function(e, r){
 	if(!e){
@@ -24,12 +25,14 @@ sentCallback = function(e, r){
 //messages until the connection is made.
 insteon.sendSD({
 	address  : '111111',
-	cmd1     : '11', //Turn light on
-	cmd2     : 'FF', //to max level
+	cmd1     : '11',  //Turn light on
+	cmd2     : 'FF',  //to max level
 	callback : sentCallback, //called when the command is sent to the PLM.
-	maxAge   : 60*5, //Not implemented. a value in seconds, this says "don't send this command if it hasn't been sent within this timeframe"
-	delay    : 60*5  //Not implemented. a value in seconds, this says "queue this command after this delay."  A value here will automatically
-	                 //adjust maxAge by making maxAge += delay.
+	success  : false, //Not implemented; callback when ack.
+	error    : false, //Not implemented; callback if fail / nak.
+	maxAge   : 60*5,  //Not implemented. a value in seconds, this says "don't send this command if it hasn't been sent within this timeframe"
+	delay    : 60*5   //Not implemented. a value in seconds, this says "queue this command after this delay."  A value here will automatically
+	                  //adjust maxAge by making maxAge += delay.
 })
 
 setInterval(function(){
