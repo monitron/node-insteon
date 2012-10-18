@@ -175,6 +175,52 @@ var getMessageFlagsByHex = exports.getMessageFlagsByHex = function getMessageFla
     return getMessageFlags(parseInt(hex, 16));
 };
 
+flags2Hex = function(flags){
+    defaults = {
+        hopsLeft  : 1,
+        maxHops   : 3
+    }
+    extend(defaults, flags); flags = defaults
+    console.log(flags)
+    if( (flags.nak || flags.ack) && flags.broadcast) return //can't have both.
+    if(flags.ack && flags.nak) return                       //can't have both.
+    if(flags.hopsLeft > flags.maxHops) return    //maxHops must be >= hopsLeft
+    if(flags.maxHops > 3) return                 //can't be >3
+    
+    var hex = flags.maxHops + (4*flags.hopsLeft)
+    if(flags.extended)  hex += 16
+    if(flags.ack)       hex += 32
+    if(flags.allLink)   hex += 64
+    if(flags.broadcast) hex += 128
+    if(flags.nak)       hex += 160 //broadcast+ack == nak.
+
+    return hex.toString(16)
+}
+hex2Flags = function(aByte){
+    switch(typeof(aByte)){
+        case 'string':
+            aByte = parseInt(aByte, 16)
+            break
+        case 'number':
+            break
+        default:
+            return //dunno what to do with this.
+    }
+    var flags = {
+        broadcast : !!(aByte & 128),
+        nak       : false,
+        allLink   : !!(aByte &  64),
+        ack       : !!(aByte &  32),
+        extended  : !!(aByte &  16),
+        hopsLeft  : (aByte   &  12) /4,
+        maxHops   :  aByte   &   3 
+    }
+    if(flags.ack && flags.broadcast){
+        flags.broadcast = flags.ack = false
+        flags.nak = true
+    }
+    return flags
+}
 var getMessageFlags = exports.getMessageFlags = function getMessageFlags(aByte) {
     // returns parsed message flag in json
     var binstr = dec2binstr(aByte, 8);
