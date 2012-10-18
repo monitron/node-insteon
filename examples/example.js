@@ -8,6 +8,9 @@ var port = "/dev/ttyUSB0"
 //It does not offer callbacks for failures/otherwise.
 insteon.connect({port:port})
 
+//The following line would turn off logging.
+//insteon.logger(function(data){})
+
 sentCallback = function(e, r){
 	if(!e){
 		console.log("Successfully sent SD command to PLM")
@@ -27,14 +30,18 @@ insteon.sendSD({
 	maxAge   : 60*5, //Not implemented. a value in seconds, this says "don't send this command if it hasn't been sent within this timeframe"
 	delay    : 60*5  //Not implemented. a value in seconds, this says "queue this command after this delay."  A value here will automatically
 	                 //adjust maxAge by making maxAge += delay.
-});insteon.sendSD({
-	address  : '111111',
-	cmd1     : '13', //Turn light off
-	cmd2     : '00',
-	callback : sentCallback
-});insteon.sendSD({
-	address  : '111111',
-	cmd1     : '11',
-	cmd2     : 'FF',
-	callback : sentCallback
 })
+
+setInterval(function(){
+	insteon.sendSD({
+		address  : '111111',
+		cmd1     : '13', //Turn light off
+		cmd2     : '00',
+		callback : sentCallback
+	});insteon.sendSD({
+		address  : '111111',
+		cmd1     : '11',
+		cmd2     : 'FF',
+		callback : sentCallback
+	})
+}, 2000)

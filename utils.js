@@ -4,6 +4,22 @@
 var config = require('./config.js');
 
 
+var log = exports.log = function(level, source, message){
+    this.level = 'info'
+    var levels = ['error', 'warn', 'info']
+    if (levels.indexOf(level) >= levels.indexOf(this.Level) ) {
+        if(typeof(message) !== 'string') message = JSON.stringify(message)
+        var pad = function(n){
+            if(typeof(n) == "number") n += ""
+            if( n.length == 1 ) return "0" + n
+            return n
+        }
+        var now = new Date()
+        var timestamp = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds())
+        console.log(timestamp + " - " + source + " - " + level + ": " + message)
+    }
+}
+
 var extend = exports.extend = function extend() {
     /**********************************************************
     * This function credit:jQuery (https://github.com/jquery/jquery/blob/master/src/core.js)
@@ -108,10 +124,7 @@ var dec2binstr = exports.dec2binstr = function dec2binstr(str,padding) {
 var dec2hexstr = exports.dec2hexstr = function dec2hexstr(str) {
 	//http://stackoverflow.com/questions/57803/how-to-convert-decimal-to-hex-in-javascript
     var hex = Number(str).toString(16);
-    padding = 2;
-    while(hex.length < padding) {
-        hex = '0' + hex;
-    }
+    if(hex.length == 1) hex = '0'+hex
     return hex;
 };
 
@@ -121,7 +134,7 @@ var arrayToString = exports.arrayToString = function arrayToString(a) {
 
 var byteArrayToHexString = exports.byteArrayToHexString = function byteArrayToHexString(ba) {
     var str = '';
-    for(var i=0; i < ba.length; i++) {
+    for(i in ba) {
         str += dec2hexstr(ba[i]);
     }
     return str;
@@ -181,12 +194,19 @@ flags2Hex = function(flags){
         maxHops   : 3
     }
     extend(defaults, flags); flags = defaults
-    console.log(flags)
-    if( (flags.nak || flags.ack) && flags.broadcast) return //can't have both.
-    if(flags.ack && flags.nak) return                       //can't have both.
-    if(flags.hopsLeft > flags.maxHops) return    //maxHops must be >= hopsLeft
-    if(flags.maxHops > 3) return                 //can't be >3
-    
+    if( (flags.nak || flags.ack) && flags.broadcast) throw { 
+        summary: 'When broadcast flag is enabled, ack and nak must be disabled.' 
+    }
+    if(flags.ack && flags.nak) throw {
+        summary: 'Cannot have nak and ack both enabled'
+    }
+    if(flags.hopsLeft > flags.maxHops) throw {
+        summary: 'maxHops must be greater than hopsLeft'
+    }
+    if(flags.maxHops > 3) throw {
+        summary: 'maxHops cannot be greater than 3'
+    }
+
     var hex = flags.maxHops + (4*flags.hopsLeft)
     if(flags.extended)  hex += 16
     if(flags.ack)       hex += 32
@@ -204,7 +224,10 @@ hex2Flags = function(aByte){
         case 'number':
             break
         default:
-            return //dunno what to do with this.
+            throw { summary: 'invalid argument' }
+    }
+    if( aByte < 0 || aByte > 0xff ) throw {
+        summary: 'argument out of range'
     }
     var flags = {
         broadcast : !!(aByte & 128),
@@ -220,6 +243,29 @@ hex2Flags = function(aByte){
         flags.nak = true
     }
     return flags
+}
+flags2Timer = function(flags){
+    //Based on the type of message, this returns the maximum amount of time a reply can take due to message retrying.
+    //If no reply is received within this time, it is safe to assume no reply is coming.
+    if(flags.extended){
+        switch(maxHops){
+            case 3  : return 3170
+            case 2  : return 3010
+            case 1  : return 2690
+            default : return 2220
+        }
+    }else{
+        switch(maxHops){
+            case 3  : return 2000
+            case 2  : return 1900
+            case 1  : return 1700
+            default : return 1400
+        }
+    }
+}
+hex2Timer = function(hex){
+    //see flags2Timer.
+    return flags2Timer(hex2Flags(hex))
 }
 var getMessageFlags = exports.getMessageFlags = function getMessageFlags(aByte) {
     // returns parsed message flag in json
@@ -305,7 +351,6 @@ var setMessageFlags = exports.setMessageFlags = function setMessageFlags(type, e
     binstr += dec2binstr(max_hops, 2);
     return binstr;
 };
-
 var getInsteonTimer = exports.getInsteonTimer = function getInsteonTimer(extended, ack, max_hops) {
     // INSTEON Full Message Cycle Times (Dev Guide, Chapter 6, rounded up)
     var times = [];
@@ -350,6 +395,7 @@ var getPlmTimer = exports.getPlmTimer = function getPlmTimer(cmd) {
 /*
 ** insteonJS: 'jsonify' an insteon message into various parts
 */
+
 var insteonJS = exports.insteonJS = function insteonJS(byteArray) {
     var data = new Object;
     data['dec'] = byteArray;
@@ -372,10 +418,11 @@ var insteonJS = exports.insteonJS = function insteonJS(byteArray) {
         case 'INSTEON Standard Message Received':
             data['from'] = data['hex'].slice(2,5);
             data['to']  = data['hex'].slice(5,8);
-            data['message_flags'] = data['hex'][8];
+            //data['message_flags'] = data['hex'][8];
+            data['message_flags'] = hex2Flags(data['hex'][8])
             data['command1'] = data['hex'][9];
             data['command2'] = data['hex'][10];
-            data['message_flags_details'] = getMessageFlags(data['dec'][8]);
+            //data['message_flags_details'] = getMessageFlags(data['dec'][8]);
             break;
         case 'Send INSTEON Standard or Extended Message':
             data['to'] = data['hex'].slice(2,5);
