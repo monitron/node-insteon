@@ -9,14 +9,15 @@ Install
 -------
 This is a developmental branch; it is not published to npm.  You must checkout the correct branch using git.
 
-	npm install serialport
-	git clone git://github.com/secesh/node-insteon.git node_modules/insteon -b commDriver
+  	npm install serialport
+    npm install winston
+	  git clone git://github.com/secesh/node-insteon.git node_modules/insteon -b commDriver
 
 How to Use
 ----------
 After installing, edit the example.js file to use the correct port.  Then run by:
 
-  node node_modules/insteon/examples/example.js
+    node node_modules/insteon/examples/example.js
 
 See [examples/example.js](https://github.com/secesh/node-insteon/tree/commDriver/examples) for more details.
 

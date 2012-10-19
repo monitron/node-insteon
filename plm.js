@@ -8,6 +8,7 @@ var utils      = require('./utils.js')
 var parser     = require('./parser.js').parser
 var sp         = null
 var events     = require('events')
+var logSource  = 'plm'
 
 function logger(level, message){
     utils.log(level, 'plm', message)
@@ -60,7 +61,7 @@ function PLM(args){
         setTimeout(
             function(){
                 sp.close(function(e){
-                    if(e) logger('warn', "FAILED to close serial port: " + e)
+                    if(e) logger({level: 'warn', source: logSource, message:  "FAILED to close serial port: " + e})
                 })
             }, 5000
         )
@@ -78,12 +79,12 @@ function PLM(args){
     }
     function spClose(){
         plmVerified = false
-        logger('info', "sp is closed")
+        logger({level: 'info', source: logSource, message: "sp is closed"})
         self.emit("disconnected")
     }
     function spError(e){
         plmVerified = false
-        logger('warn', "Serialport error: " + e)
+        logger({level: 'warn', source: logSource, message: "Serialport error: " + e})
         self.emit("disconnected")
     }
     function spData(d){
@@ -141,12 +142,12 @@ function PLM(args){
             logger('info', "The following serial ports are available on your system:")
             for(port in ports){
                 self.connect(ports[port].comName)
-                logger('info', "    Port " + port + ":")
-                logger('info', "        path: " + ports[port].comName)
-                logger('info', "        make: " + ports[port].manufacturer)
-                logger('info', "        id  : " + ports[port].pnpId)
+                logger({level: 'info', source: logSource, message: "    Port " + port + ":"})
+                logger({level: 'info', source: logSource, message: "        path: " + ports[port].comName})
+                logger({level: 'info', source: logSource, message: "        make: " + ports[port].manufacturer})
+                logger({level: 'info', source: logSource, message: "        id  : " + ports[port].pnpId})
             }
-            logger('info', "done listing ports.")
+            logger({level: 'info', source: logSource, message: "done listing ports."})
         }
     }
     

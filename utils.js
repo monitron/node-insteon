@@ -1,23 +1,15 @@
 /*
 ** Utility Functions
 */
-var config = require('./config.js');
+var config = require('./config.js')
+var winston = require('winston')
 
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, {  colorize: true, timestamp: true } )
 
-var log = exports.log = function(level, source, message){
-    this.level = 'info'
-    var levels = ['error', 'warn', 'info']
-    if (levels.indexOf(level) >= levels.indexOf(this.Level) ) {
-        if(typeof(message) !== 'string') message = JSON.stringify(message)
-        var pad = function(n){
-            if(typeof(n) == "number") n += ""
-            if( n.length == 1 ) return "0" + n
-            return n
-        }
-        var now = new Date()
-        var timestamp = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds())
-        console.log(timestamp + " - " + source + " - " + level + ": " + message)
-    }
+var log = exports.log = function(args){
+    if(typeof(args.message) !== 'string') args.message = JSON.stringify(args.message)
+    winston.log(args.level, "(" + args.source + ") " + args.message)
 }
 
 var extend = exports.extend = function extend() {
