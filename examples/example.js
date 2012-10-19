@@ -15,9 +15,9 @@ insteon.connect({
 
 sentCallback = function(e, r){
 	if(!e){
-		utils.winston.debug("Successfully sent SD command", logMeta)
+		utils.winston.debug("Transmitted command to PLM: " + r, logMeta)
 	}else{
-		utils.winston.error("Error sending SD to PLM: " + e, logMeta)
+		utils.winston.error("Error transmitting to PLM: " + e, logMeta)
 	}
 }
 
@@ -28,9 +28,12 @@ insteon.sendSD({
 	address  : '111111',
 	cmd1     : '11',  //Turn light on
 	cmd2     : 'FF',  //to max level
-	callback : sentCallback, //called when the command is sent to the PLM.
+	sentCallback : function(e,r){
+		//This callback fires when the command is received by the serial port (and thus the PLM).
+		sentCallback(e, "turn on light")
+	},
 	success  : false, //Not implemented; callback when ack.
-	error    : false, //Not implemented; callback if fail / nak.
+	error    : false, //Not implemented; callback if timeout waiting for reply or / nak.
 	maxAge   : 60*5,  //Not implemented. a value in seconds, this says "don't send this command if it hasn't been sent within this timeframe"
 	delay    : 60*5   //Not implemented. a value in seconds, this says "queue this command after this delay."  A value here will automatically
 	                  //adjust maxAge by making maxAge += delay.
@@ -41,11 +44,15 @@ setInterval(function(){
 		address  : '111111',
 		cmd1     : '13', //Turn light off
 		cmd2     : '00',
-		callback : sentCallback
+		sentCallback : function(e,r){ sentCallback(e, "turn off light") }
 	});insteon.sendSD({
 		address  : '111111',
 		cmd1     : '11',
 		cmd2     : 'FF',
-		callback : sentCallback
+		sentCallback : function(e,r){ sentCallback(e, "turn on light") }
 	})
 }, 2000)
+
+setTimeout(function(){
+        process.exit()
+}, 10000)

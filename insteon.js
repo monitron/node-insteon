@@ -7,6 +7,7 @@ var config    = require('./config.js')
 var logMeta   = {source: 'insteon'}
 var PLM       = require('./plm.js').PLM
 var plm
+var debugCounter = 0 //a running counter.
 exports.eventEmitter    = config.eventEmitter
 exports.setMessageFlags = utils.setMessageFlags
 
@@ -24,22 +25,23 @@ function wCallback(e, r){
 
 exports.sendSD = function sendSD(args){
     options = {
-        flags: '0B' //TODO: why not 0F working?
+        flags   : '0B', //TODO: why not 0F working?
+        debugID : ++debugCounter
     }
+    if(debugCounter > 100) debugCounter = 0 //don't let it get too big.
+        
     utils.extend(options, args)
     var command = '0262' + options.address + options.flags + options.cmd1 + options.cmd2
     
-    
-    
     //queue_everything!
-    utils.winston.debug("Queueing " + command, logMeta)
+    utils.winston.debug("Queueing " + command + " (" + options.debugID + ")", logMeta)
     enqueue(
         utils.extend(options, {
-            action: function(){ plm.sendHex(command, args.callback) },
+            action: function(){ plm.sendHex(command, args.sentCallback) },
             command: command
         })
     )
-    if(options.callback) options.callback()
+    //if(options.callback) options.callback()
 }
 function shiftQueue(){
     if(!config.portIsOpen || config.PLM_BUSY) return
@@ -75,7 +77,7 @@ exports.connect = function connect(args) {
                 var lookingFor = (sent[i].command+"06").toUpperCase()
                 
                 if(hexStr == lookingFor){
-                    utils.winston.debug("**********got PLM ack")
+                    utils.winston.debug("Matched a PLM ACK (" + sent[i].debugID + ")", logMeta)
                     sent[i].plmAck = true
                     matched = {type: 'plmAck', index: i}; break //prevent improper multiple matches
                 }else{
@@ -92,11 +94,11 @@ exports.connect = function connect(args) {
                 var receivedFrom = message.from.join('').toUpperCase()
                 if(r1 == s1 && r2 == s2 && receivedFrom == sentTo){
                     if(message.flags.ack){
-                        utils.winston.debug("*********** got ack from receiving device")
+                        utils.winston.debug("Matched an Ack from a remote device (" + sent[i].debugID + ")", logMeta)
                         sent[i].ack = true
                         matched = {type: 'remote ack', index: i}; break //prevent improper multiple matches
                     }else if(message.flags.nak){
-                        utils.winston.error("*********** got nak from receiving device")
+                        utils.winston.error("Matched a Nak from a remote device (" + sent[i].debugID + ")", logMeta)
                         sent[i].nak = true
                         matched = {type: 'remote nak', index: i}; break //prevent improper multiple matches
                     }
@@ -111,8 +113,6 @@ exports.connect = function connect(args) {
             //TODO: callbacks go here.  Also need a "no response" callback somewhere.
         }
 	})
-    setTimeout(function(){
-        console.log(sent); process.exit()
-    }, 10000)
+    
     utils.winston.info("Attempting connection to " + config.port, logMeta)
 }
