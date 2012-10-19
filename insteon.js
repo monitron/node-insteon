@@ -6,17 +6,17 @@ var utils     = require('./utils.js')
 var config    = require('./config.js')
 var logMeta   = {source: 'insteon'}
 var PLM       = require('./plm.js').PLM
-var plm
-var debugCounter = 0 //a running counter.
-exports.eventEmitter    = config.eventEmitter
-exports.setMessageFlags = utils.setMessageFlags
+var plm                          //defined in exports.connect()
+var debugCounter         = 0     //a running counter.
+var plm_nak_timestamp    = false //when a NAK occurs, this determines the wait period.
+var SHIFT_QUEUE_INTERVAL = 300   //PLM should only need 240ms between commands, but queuing endless commands on this
+                                 //interval would generate NAKs and introduce delays.  An interval of 300ms works better.
+
+// exports.eventEmitter    = config.eventEmitter
+// exports.setMessageFlags = utils.setMessageFlags
 
 var queue = [] //Items waiting to be sent to PLM.
 var sent  = [] //After sent to PLM, hold here to track ACKs.
-function enqueue(args){
-    queue.push(args)
-}
-
 
 function wCallback(e, r){
     utils.winston.info("Wrote to PLM", logMeta)
@@ -24,31 +24,69 @@ function wCallback(e, r){
 }
 
 exports.sendSD = function sendSD(args){
-    options = {
+    var options = {
         flags   : '0B', //TODO: why not 0F working?
         debugID : ++debugCounter
     }
-    if(debugCounter > 100) debugCounter = 0 //don't let it get too big.
-        
     utils.extend(options, args)
+    if(debugCounter > 100) debugCounter = 0 //don't let it get too big.
+    
     var command = '0262' + options.address + options.flags + options.cmd1 + options.cmd2
     
     //queue_everything!
     utils.winston.debug("Queueing " + command + " (" + options.debugID + ")", logMeta)
-    enqueue(
+    queue.push(
         utils.extend(options, {
-            action: function(){ plm.sendHex(command, args.sentCallback) },
+            action: function(){ plm.sendHex(command, function(e,r){ options.cbSent(e,options)} ) },
             command: command
         })
     )
     //if(options.callback) options.callback()
 }
 function shiftQueue(){
+    var now  = new Date()
+    do{
+        //Originally, we issued a setTimeout() when the item was pushed
+        //to expire it, but the timer was unreliable; this do loop seems
+        //more accurate.  Maybe the more timers Node tries to track, the
+        //worse it does?  Docs warn to unreliability of timers.
+        //http://nodejs.org/api/timers.html
+        var something_expired = false
+        for(i in sent){
+            //console.log("Comparing " + sent[i].expiresAt + " to " + now)
+            if(sent[i].expiresAt < now){
+                something_expired = i
+                break
+                //console.log("Item " + i + " is expired.")
+            }
+        }
+        if(something_expired){
+            var item = sent[something_expired]
+            sent.splice(something_expired, 1)
+            if(item.cbComplete) item.cbComplete("timeout", item)
+        }
+        
+    }while(something_expired)
+
     if(!config.portIsOpen || config.PLM_BUSY) return
     if(!queue.length) return
-    item = queue.shift()
-    sent.push(item)
+    
+    if(plm_nak_timestamp){
+        var now = new Date()
+        if((now.getTime()-plm_nak_timestamp) < 3000){
+            console.log("waiting due to PLM NAK")
+            return
+        }
+        plm_nak_timestamp = null
+    }
+    var item = queue.shift()
+    
+    var timer = utils.flags2Timer(item.flags)
+    now = new Date()
+    item.expiresAt = new Date(now.getTime() + timer)
+    
     item.action()
+    sent.push(item)
 }
 
 exports.connect = function connect(args) {
@@ -58,15 +96,18 @@ exports.connect = function connect(args) {
     utils.extend(options, args); config.port = options.port
 	plm = new PLM({port: options.port})
 	plm.on("disconnected", function(){
-	    config.portIsOpen = false
+        config.portIsOpen = false
+        clearInterval(config.queueInterval)
 	    utils.winston.warn('PLM is disconnected', logMeta)
-	    if(config.queueInterval) clearInterval(config.queueInterval)
+        
 	    plm.find()
 	})
 	plm.on("connected", function(){
 	    config.portIsOpen = true
 	    utils.winston.info("PLM is connected", logMeta)
-	    config.queueInterval = setInterval(shiftQueue, 240)
+        
+        clearInterval(config.queueInterval) //shouldn't ever be set at this stage, but just in case.
+	    config.queueInterval = setInterval(shiftQueue, SHIFT_QUEUE_INTERVAL)
 	})
 	plm.on('data', function(message){
         var hexStr  = (message.hex.join('')).toUpperCase()
@@ -106,11 +147,43 @@ exports.connect = function connect(args) {
             }
         }
         if(!matched){
-            utils.winston.error("Unmatched message from PLM", utils.extend(message, logMeta))
-            console.log(sent); process.exit()
+//TODO: not working.  nak timer works.  seems PLM spits back message when timed out, meaning it doesn't match sent queue;
+//      it'll match unsent queue.
+            if(message.hex.toString(16) == '15'){
+                utils.winston.error("PLM NAK", utils.extend(message, logMeta))
+                plm_nak_timestamp = new Date().getTime()
+                if(sent.length){
+                    item = sent.pop()
+                    //if(item.debugID) ;
+                    //utils.winston.error("       ", utils.extend(item, logMeta))
+                    item.tries = typeof(item.tries) == 'number'? item.tries+1 : 0
+                    if(item.tries > 5){
+                        utils.winston.error("********* TOSSING")
+                        if(sent[matched.index].cbComplete) sent[matched.index].cbComplete("PLM nak", sent[matched.index])
+                        //Don't put it back in the queue; give up on it.
+                    }else{
+                        item.expiresAt = false
+                        utils.winston.warn("Re-queuing (" + item.debugID + " - " + item.tries + ")")
+                        queue.unshift(item)
+                        //console.log(queue); process.exit()
+                    }
+                }
+                    
+            }else{
+                utils.winston.error("Unmatched message from PLM", utils.extend(message, logMeta))
+                //console.log(sent); process.exit()
+            }
         }else{
-            if(matched.type == 'remote ack' || matched.type == 'remote nak') sent.splice(matched.i, 1)
-            //TODO: callbacks go here.  Also need a "no response" callback somewhere.
+            if(sent[matched.index].timeout) clearTimeout(sent[matched.index].timeout)
+            if(matched.type == 'remote ack'){
+                if(sent[matched.index].cbComplete) sent[matched.index].cbComplete(null, sent[matched.index])
+                sent.splice(matched.index, 1) //we're done with this; clean it up.
+                
+            }else if(matched.type == 'remote nak'){
+                if(sent[matched.index].cbComplete) sent[matched.index].cbComplete("nak", sent[matched.index])
+                sent.splice(matched.index, 1) //we're done with this; clean it up.
+            }
+            //TODO: need a "no response" callback somewhere.
         }
 	})
     

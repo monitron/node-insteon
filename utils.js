@@ -177,7 +177,7 @@ var getMessageFlagsByHex = exports.getMessageFlagsByHex = function getMessageFla
     return getMessageFlags(parseInt(hex, 16));
 };
 
-flags2Hex = function(flags){
+var flags2Hex = exports.flags2Hex = function(flags){
     defaults = {
         hopsLeft  : 1,
         maxHops   : 3
@@ -205,7 +205,7 @@ flags2Hex = function(flags){
 
     return hex.toString(16)
 }
-hex2Flags = function(aByte){
+var hex2Flags = exports.hex2Flags = function(aByte){
     switch(typeof(aByte)){
         case 'string':
             aByte = parseInt(aByte, 16)
@@ -233,18 +233,19 @@ hex2Flags = function(aByte){
     }
     return flags
 }
-flags2Timer = function(flags){
+var flags2Timer = exports.flags2Timer = function(flags){
+    if(typeof(flags) == 'string') flags = hex2Flags(flags) //assuming....
     //Based on the type of message, this returns the maximum amount of time a reply can take due to message retrying.
     //If no reply is received within this time, it is safe to assume no reply is coming.
     if(flags.extended){
-        switch(maxHops){
+        switch(flags.maxHops){
             case 3  : return 3170
             case 2  : return 3010
             case 1  : return 2690
             default : return 2220
         }
     }else{
-        switch(maxHops){
+        switch(flags.maxHops){
             case 3  : return 2000
             case 2  : return 1900
             case 1  : return 1700
