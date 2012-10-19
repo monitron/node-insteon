@@ -15,7 +15,7 @@ insteon.connect({
 
 sentCallback = function(e, r){
 	if(!e){
-		utils.winston.info("Successfully sent SD command", logMeta)
+		utils.winston.debug("Successfully sent SD command", logMeta)
 	}else{
 		utils.winston.error("Error sending SD to PLM: " + e, logMeta)
 	}

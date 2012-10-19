@@ -131,15 +131,15 @@ function PLM(args){
         if(error){
             utils.winston.warn("Went looking for PLM, but received error: " + error, logMeta)
         }else{
-            utils.winston.info("The following serial ports are available on your system:", logMeta)
+            utils.winston.debug("The following serial ports are available on your system:", logMeta)
             for(port in ports){
                 self.connect(ports[port].comName)
-                utils.winston.info("    Port " + port + ":", logMeta)
-                utils.winston.info("        path: " + ports[port].comName, logMeta)
-                utils.winston.info("        make: " + ports[port].manufacturer, logMeta)
-                utils.winston.info("        id  : " + ports[port].pnpId, logMeta)
+                utils.winston.debug("    Port " + port + ":", logMeta)
+                utils.winston.debug("        path: " + ports[port].comName, logMeta)
+                utils.winston.debug("        make: " + ports[port].manufacturer, logMeta)
+                utils.winston.debug("        id  : " + ports[port].pnpId, logMeta)
             }
-            utils.winston.info("done listing ports", logMeta)
+            utils.winston.debug("done listing ports", logMeta)
         }
     }
     
