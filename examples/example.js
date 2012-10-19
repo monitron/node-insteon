@@ -1,6 +1,7 @@
 var insteon = require('insteon')
-var port = "/dev/ttyUSB0"
-
+var utils   = require('insteon/utils.js')
+var port    = "/dev/ttyUSB0"
+var logMeta = {source: 'example'}
 
 //There is not currently any intelligence regarding this connection.
 //It does not verify a PLM is connected to the port before sending any 
@@ -14,9 +15,9 @@ insteon.connect({
 
 sentCallback = function(e, r){
 	if(!e){
-		console.log("Successfully sent SD command to PLM")
+		utils.winston.info("Successfully sent SD command", logMeta)
 	}else{
-		console.log("Error sending SD to PLM: " + e)	
+		utils.winston.error("Error sending SD to PLM: " + e, logMeta)
 	}
 }
 

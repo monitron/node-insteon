@@ -4,13 +4,10 @@
 var config = require('./config.js')
 var winston = require('winston')
 
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {  colorize: true, timestamp: true } )
-
-var log = exports.log = function(args){
-    if(typeof(args.message) !== 'string') args.message = JSON.stringify(args.message)
-    winston.log(args.level, "(" + args.source + ") " + args.message)
-}
+//winston.remove(winston.transports.Console)
+//winston.add(winston.transports.Console, {  colorize: true, timestamp: true } )
+winston.cli()
+exports.winston = winston
 
 var extend = exports.extend = function extend() {
     /**********************************************************

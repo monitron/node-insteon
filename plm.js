@@ -8,14 +8,7 @@ var utils      = require('./utils.js')
 var parser     = require('./parser.js').parser
 var sp         = null
 var events     = require('events')
-var logSource  = 'plm'
-
-function logger(level, message){
-    utils.log(level, 'plm', message)
-}
-var setLogger = exports.logger = function(f){
-    logger = f
-}
+var logMeta    = {source: 'plm'}
 
 function PLM(args){
     var self = this
@@ -33,7 +26,6 @@ function PLM(args){
         parser      : parser()
     }
     utils.extend(options, args)
-    if(options.logger) setLogger(options.logger)
     
     var looking_for_plm = false
     
@@ -61,7 +53,7 @@ function PLM(args){
         setTimeout(
             function(){
                 sp.close(function(e){
-                    if(e) logger({level: 'warn', source: logSource, message:  "FAILED to close serial port: " + e})
+                    if(e) utils.winston.warn("FAILED to close serial port: " + e, logMeta)
                 })
             }, 5000
         )
@@ -79,12 +71,12 @@ function PLM(args){
     }
     function spClose(){
         plmVerified = false
-        logger({level: 'info', source: logSource, message: "sp is closed"})
+        utils.winston.info("Serialport is closed", logMeta)
         self.emit("disconnected")
     }
     function spError(e){
         plmVerified = false
-        logger({level: 'warn', source: logSource, message: "Serialport error: " + e})
+        utils.winston.warn("Serialport error: " + e, logMeta)
         self.emit("disconnected")
     }
     function spData(d){
@@ -137,17 +129,17 @@ function PLM(args){
         //suspect this will run through so fast that it'll only really test the last port.
         //progression through ports needs to be handled on a callback.
         if(error){
-            logger('warn', "Went looking for PLM, but received error: " + error)
+            utils.winston.warn("Went looking for PLM, but received error: " + error, logMeta)
         }else{
-            logger('info', "The following serial ports are available on your system:")
+            utils.winston.info("The following serial ports are available on your system:", logMeta)
             for(port in ports){
                 self.connect(ports[port].comName)
-                logger({level: 'info', source: logSource, message: "    Port " + port + ":"})
-                logger({level: 'info', source: logSource, message: "        path: " + ports[port].comName})
-                logger({level: 'info', source: logSource, message: "        make: " + ports[port].manufacturer})
-                logger({level: 'info', source: logSource, message: "        id  : " + ports[port].pnpId})
+                utils.winston.info("    Port " + port + ":", logMeta)
+                utils.winston.info("        path: " + ports[port].comName, logMeta)
+                utils.winston.info("        make: " + ports[port].manufacturer, logMeta)
+                utils.winston.info("        id  : " + ports[port].pnpId, logMeta)
             }
-            logger({level: 'info', source: logSource, message: "done listing ports."})
+            utils.winston.info("done listing ports", logMeta)
         }
     }
     
