@@ -3,7 +3,7 @@ Node.JS Insteon Communication Driver
 
 About
 -----
-The current state of this branch is in limbo.  This branch is intended to target the package at implementing communication with a PLM while improving the API.  The goal is to provide easy methods for communicating with an Insteon network that do not require inherient knowledge of the Insteon protocol.  -- something like `light.turnOn(callback)` rather than `sp.write(new Buffer([0x02, 0x50, 0x11, 0x11, 0x11, 0xAA, 0xAA, 0xAA, 0x0B, 0x11, 0xFF]), callback)`
+This branch is beginning to achieve maturity.  Not much of the protocol has been implemented yet, but the core logic is stabilizing.
 
 Install
 -------

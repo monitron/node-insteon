@@ -1,7 +1,11 @@
-/*****************************************
-* This module provides a lightweight
-* wrapper for the serialport connection
-* to a PLM.
+/*************************************************
+* This module manages the connection to the PLM.
+* By default, it checks to confirm a PLM is
+* connected to the connected port before
+* accepting messages.  It also features an
+* automated recovery process that checks all
+* serial ports for a PLM.
+* TODO: offer an option to limit ports to check.
 *********************/
 var SerialPort = require('serialport')
 var utils      = require('./utils.js')
@@ -66,11 +70,12 @@ function PLM(args){
     })
     function spEnd(){
         plmVerified = false
+        utils.winston.debug("Serialport end", logMeta)
         self.emit("disconnected")
     }
     function spClose(){
         plmVerified = false
-        utils.winston.info("Serialport is closed", logMeta)
+        utils.winston.debug("Serialport closed", logMeta)
         self.emit("disconnected")
     }
     function spError(e){
@@ -127,9 +132,6 @@ function PLM(args){
     
     var portFinder = null
     function found(error, foundPorts){
-        //TODO: There's a flagrent logic error, probably.  I only have one port on my system.  I
-        //suspect this will run through so fast that it'll only really test the last port.
-        //progression through ports needs to be handled on a callback.
         if(error){
             utils.winston.warn("Went looking for PLM, but received error: " + error, logMeta)
         }else{
@@ -158,16 +160,16 @@ function PLM(args){
     this.find = function(){
         if(portFinder){
             utils.winston.warn("portFinder is already processing, but was called again.", logMeta)
-            //console.log(portFinder)
         }else{
             SerialPort.list(found)
         }
     }
     
     self.connect(options.port)
-    //self.find()
-    
     setInterval(function(){
+        //Periodically check if the connection needs to be recovered.
+        //theoretically, self.on("disconnected") should initiate recovery,
+        //but testing showed it didn't always.  TODO: look into that.
         if(!plmVerified) self.find()
     }, 60*1000 )
     //Commented the following.  It was used during development of reconnect.

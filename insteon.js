@@ -1,7 +1,13 @@
-/*
-** node-insteon
-** ------------
-*/
+/***********************************************
+* This module provides the protocol control.
+* It leverages the PLM module to communicate
+* with an INSTEON Modem.
+* Features include automatic message queuing
+* with ACK/NAK matching and timeouts.
+* Right now it doesn't know much of the 
+* protocol.  The API for using this module
+* is not finalized.
+****************************/
 var utils     = require('./utils.js')
 var config    = require('./config.js')
 var logMeta   = {source: 'insteon'}

@@ -3,19 +3,13 @@ var utils   = require('insteon/utils.js')
 var port    = "/dev/ttyUSB0"
 var logMeta = {source: 'example'}
 
-//There is not currently any intelligence regarding this connection.
-//It does not verify a PLM is connected to the port before sending any 
-//queued messaged; once the port is open, queued messages are sent.
-//It does not offer callbacks for failures/otherwise.
 insteon.connect({
 	port:port
-	//uncommenting the following line will disable logging (don't forget comma above).
-	//logger: function(data, source, message){}
 })
 
 var callbacks = {
 	cbSent     : function(e,sent){
-		//This callback fires when the command is sent to the PLM.
+		//This callback fires when the command is sent to the serial port (an thus to the PLM).
 		if(!e){
 			utils.winston.debug("Began communication (" + sent.debugID + ")", logMeta)
 		}else{
@@ -23,7 +17,7 @@ var callbacks = {
 		}
 	},
 	cbComplete : function(e, sent){
-		//This callback fired when the process is complete.
+		//This callback fires when the process is complete.
 		if(!e){
 			utils.winston.info("Successfully completed communication (" + sent.debugID + ")", logMeta)
 		}else{
@@ -44,13 +38,14 @@ insteon.sendSD(utils.extend({
 }, callbacks) )
 
 setInterval(function(){
+	//Light-switch rave party!!!
 	insteon.sendSD(utils.extend({
 		address  : '111111',
 		cmd1     : '13', //Turn light off
 		cmd2     : '00'
 	}, callbacks) );insteon.sendSD(utils.extend({
 		address  : '111111',
-		cmd1     : '11',
+		cmd1     : '11', //Turn it back on
 		cmd2     : 'FF'
 	}, callbacks) )
 }, 2000)
