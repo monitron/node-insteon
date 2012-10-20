@@ -20,9 +20,9 @@ var SHIFT_QUEUE_INTERVAL = 300   //PLM should only need 240ms between commands, 
 var queue                = []    //Items waiting to be sent to PLM.
 var sent                 = []    //After sent to PLM, hold here to track ACKs.
 
-exports.sendSD = function sendSD(args){
+var sendSD = exports.sendSD = function(args){
     var options = {
-        flags   : '0B',
+        flags   : "0b",
         debugID : ++debugCounter
     }
     utils.extend(options, args)
@@ -38,6 +38,43 @@ exports.sendSD = function sendSD(args){
             command: command
         })
     )
+}
+function zPad(str){
+    if(str.length == 1) return "0" + str
+    return str
+}
+exports.lightOn = function(args){
+    var options = {
+        cmd1 : "11",
+        cmd2 : "ff"
+    }
+    utils.extend(options, args)
+    if(options.level){
+        if(options.level.indexOf("%")){
+            var percent = parseInt(options.level) / 100
+            if(percent > 100) throw "Invalid argument; level cannot be >100%"
+            var level = parseInt( parseInt(options.cmd2, 16) * percent )
+            options.cmd2 = zPad(level.toString(16))
+        }
+    }
+    if(options.fast){
+        options.cmd1 = "12"
+        delete options.fast
+    }
+    delete options.level
+    sendSD(options)
+}
+exports.lightOff = function(args){
+    var options = {
+        cmd1 : "13",
+        cmd2 : "00"
+    }
+    utils.extend(options, args)
+    if(options.fast){
+        options.cmd1 = "14"
+        delete options.fast
+    }
+    sendSD(options)
 }
 function shiftQueue(){
     var now  = new Date()

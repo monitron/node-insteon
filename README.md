@@ -15,7 +15,7 @@ This is a developmental branch; it is not published to npm.  You must checkout t
 
 How to Use
 ----------
-After installing, edit the example.js file to use the correct port.  Then run by:
+After installing, edit the example.js file to use the correct port (or don't; the PLM module will look for it).  Then run by:
 
     node node_modules/insteon/examples/example.js
 

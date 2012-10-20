@@ -234,7 +234,7 @@ var hex2Flags = exports.hex2Flags = function(aByte){
     return flags
 }
 var flags2Timer = exports.flags2Timer = function(flags){
-    if(typeof(flags) == 'string') flags = hex2Flags(flags) //assuming....
+    if(typeof(flags) == 'string') return hex2Timer(flags) //assuming....
     //Based on the type of message, this returns the maximum amount of time a reply can take due to message retrying.
     //If no reply is received within this time, it is safe to assume no reply is coming.
     if(flags.extended){
@@ -253,7 +253,7 @@ var flags2Timer = exports.flags2Timer = function(flags){
         }
     }
 }
-hex2Timer = function(hex){
+var hex2Timer = exports.hex2Timer = function(hex){
     //see flags2Timer.
     return flags2Timer(hex2Flags(hex))
 }

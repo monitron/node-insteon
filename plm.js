@@ -36,7 +36,7 @@ function PLM(args){
     //set this to true by default.  It will be reset to false when the serial port is connected IF
     //options.verifyConnection is enabled.  Otherwise we pretend it's verified to emit all messages.
     var plmVerified = true
-    var verifyPLMinterval
+    var verifyPLMinterval //used to control multiple verify attempts.
     function verifyPLM(){
         var count = 0
         var verify = function() {

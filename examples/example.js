@@ -39,16 +39,22 @@ insteon.sendSD(utils.extend({
 
 setInterval(function(){
 	//Light-switch rave party!!!
-	insteon.sendSD(utils.extend({
-		address  : '111111',
-		cmd1     : '13', //Turn light off
-		cmd2     : '00'
-	}, callbacks) );insteon.sendSD(utils.extend({
-		address  : '111111',
-		cmd1     : '11', //Turn it back on
-		cmd2     : 'FF'
-	}, callbacks) )
-}, 2000)
+	
+	// insteon.lightOff(
+	// 	utils.extend({address  : '111111', fast: true}, callbacks)
+	// )
+	
+	var lowLevel  = Math.floor(Math.random()*51)
+	var highLevel = Math.floor(Math.random()*51)+50
+	insteon.lightOn(
+		utils.extend({address  : '111111', level: lowLevel  + '%'}, callbacks)
+	)
+	insteon.lightOn(
+		utils.extend({address  : '111111', level: highLevel + '%'}, callbacks)
+	)
+
+	
+}, 1000)
 
 //Uncomment the following to make it stop after a time.
 // setTimeout(function(){
