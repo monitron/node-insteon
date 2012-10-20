@@ -50,14 +50,6 @@ function PLM(args){
     }
     
     function spOpen(){
-        setTimeout(
-            function(){
-                sp.close(function(e){
-                    if(e) utils.winston.warn("FAILED to close serial port: " + e, logMeta)
-                })
-            }, 5000
-        )
-        
         if(options.verifyConnection){
             plmVerified = false
             verifyPLM()
@@ -65,6 +57,13 @@ function PLM(args){
             self.emit("connected")
         }
     }
+    self.on("disconnected", function(){
+        utils.winston.warn('PLM is disconnected; will look for it.', logMeta)
+        self.find()
+    })
+    self.on("connected", function(){
+        utils.winston.info("PLM is connected!", logMeta)
+    })
     function spEnd(){
         plmVerified = false
         self.emit("disconnected")
@@ -83,6 +82,8 @@ function PLM(args){
         var message = utils.insteonJS(d)
         if(options.verifyConnection && !plmVerified && message.type == "Get IM Info"){
             plmVerified = true
+            if(portFinder) clearInterval(portFinder.interval)
+            portFinder = null
             if(verifyPLMinterval){
                 clearInterval(verifyPLMinterval)
                 verifyPLMinterval = null
@@ -124,30 +125,60 @@ function PLM(args){
         sp.write(new Buffer(hex, "hex"), callback)
     }
     
-    function found(error, ports){
+    var portFinder = null
+    function found(error, foundPorts){
         //TODO: There's a flagrent logic error, probably.  I only have one port on my system.  I
         //suspect this will run through so fast that it'll only really test the last port.
         //progression through ports needs to be handled on a callback.
         if(error){
             utils.winston.warn("Went looking for PLM, but received error: " + error, logMeta)
         }else{
-            utils.winston.debug("The following serial ports are available on your system:", logMeta)
-            for(port in ports){
-                self.connect(ports[port].comName)
-                utils.winston.debug("    Port " + port + ":", logMeta)
-                utils.winston.debug("        path: " + ports[port].comName, logMeta)
-                utils.winston.debug("        make: " + ports[port].manufacturer, logMeta)
-                utils.winston.debug("        id  : " + ports[port].pnpId, logMeta)
+            portFinder = {
+                interval : null,
+                ports    : foundPorts
             }
-            utils.winston.debug("done listing ports", logMeta)
+            
+            portFinder.interval = setInterval(checkPortForPLM, 5000)
+        }
+    }
+    function checkPortForPLM(){
+        if(!portFinder.ports.length){
+            //Done checking.  packup and quit; interval should recover it eventually.
+            if(portFinder) clearInterval(portFinder.interval)
+            portFinder = null
+            return
+        }
+        port = portFinder.ports.pop() //shift()
+        self.connect(port.comName)
+        utils.winston.debug("Checking for PLM on:", logMeta)
+        utils.winston.debug("    path: " + port.comName, logMeta)
+        utils.winston.debug("    make: " + port.manufacturer, logMeta)
+        utils.winston.debug("    id  : " + port.pnpId, logMeta)
+    }
+    this.find = function(){
+        if(portFinder){
+            utils.winston.warn("portFinder is already processing, but was called again.", logMeta)
+            //console.log(portFinder)
+        }else{
+            SerialPort.list(found)
         }
     }
     
-    this.find = function(){
-        SerialPort.list(found)
-    }
-    
     self.connect(options.port)
+    //self.find()
+    
+    setInterval(function(){
+        if(!plmVerified) self.find()
+    }, 60*1000 )
+    //Commented the following.  It was used during development of reconnect.
+    // setTimeout(
+    //     function(){
+    //         sp.close(function(e){
+    //             if(e) utils.winston.warn("FAILED to close serial port: " + e, logMeta)
+    //         })
+    //     }, 7000
+    // )
+
 }
 PLM.prototype  = new events.EventEmitter
 module.exports.PLM = PLM
