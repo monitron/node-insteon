@@ -3,9 +3,8 @@ var utils   = require('insteon/utils.js')
 var logMeta = {source: 'example'}
 
 var port    = "/dev/ttyUSB0"
-insteon.connect({
-	//port:port
-})
+insteon.connect({ port:port }) //If you don't specify a port, or specify the wrong port, the PLM module should eventually recover
+                               //if there is a PLM connected to any port on the system.
 
 var callbacks = {
 	cbSent     : function(e,sent){
