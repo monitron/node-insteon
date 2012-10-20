@@ -171,7 +171,7 @@ function PLM(args){
         //theoretically, self.on("disconnected") should initiate recovery,
         //but testing showed it didn't always.  TODO: look into that.
         if(!plmVerified) self.find()
-    }, 60*1000 )
+    }, 20*1000 )
     //Commented the following.  It was used during development of reconnect.
     // setTimeout(
     //     function(){

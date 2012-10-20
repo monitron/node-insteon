@@ -32,10 +32,16 @@ var sendSD = exports.sendSD = function(args){
     
     //queue_everything!
     utils.winston.debug("Queueing " + command + " (" + options.debugID + ")", logMeta)
+    var queuedAt = new Date().getTime() //used when reviewing maxAge and delay options.
+    var runAfter = false; var expireAfter = false
+    
+    if(parseInt(options.delay ) >= 0) runAfter    = queuedAt + parseInt(options.delay )*1000
+    if(parseInt(options.maxAge) >= 0) expireAfter = queuedAt + parseInt(options.maxAge)*1000
     queue.push(
         utils.extend(options, {
             action: function(){ plm.sendHex(command, function(e,r){ options.cbSent(e,options)} ) },
-            command: command
+            command: command,
+            queuedAt: queuedAt, runAfter: runAfter, expireAfter: expireAfter
         })
     )
 }
@@ -43,47 +49,55 @@ function zPad(str){
     if(str.length == 1) return "0" + str
     return str
 }
-exports.lightOn = function(args){
-    var options = {
-        cmd1 : "11",
-        cmd2 : "ff"
-    }
-    utils.extend(options, args)
-    if(options.level){
-        if(options.level.indexOf("%")){
-            var percent = parseInt(options.level) / 100
-            if(percent > 100) throw "Invalid argument; level cannot be >100%"
-            var level = parseInt( parseInt(options.cmd2, 16) * percent )
-            options.cmd2 = zPad(level.toString(16))
+exports.light = function(args){
+    /**********************************************************************************
+    * a simplified object.
+    ***********************************************************************************/
+    var globals = {}
+    utils.extend(globals, args)
+    
+    this.turnOn  = function(args){
+        //named "turn on" rather than "on" to avoid confusion with callback syntax
+        var options = { address: globals.address, cmd1: '11', cmd2: 'ff' }
+        utils.extend(options, args)
+        if(options.level){
+            if(options.level.indexOf("%")){
+                var percent = parseInt(options.level) / 100
+                if(percent > 100) throw "Invalid argument; level cannot be >100%"
+                var level = parseInt( parseInt(options.cmd2, 16) * percent )
+                options.cmd2 = zPad(level.toString(16))
+            }
         }
+        if(options.fast){
+            options.cmd1 = "12"
+            delete options.fast
+        }
+        delete options.level
+        sendSD(options)
     }
-    if(options.fast){
-        options.cmd1 = "12"
-        delete options.fast
+    this.turnOff = function(args){
+        //named "turn off" rather than "off" to be consistent with turnOn()
+        var options = { address: globals.address, cmd1: '13', cmd2: '00' }
+        utils.extend(options, args)
+        if(options.fast){
+            options.cmd1 = "14"
+            delete options.fast
+        }
+        sendSD(options)
     }
-    delete options.level
-    sendSD(options)
-}
-exports.lightOff = function(args){
-    var options = {
-        cmd1 : "13",
-        cmd2 : "00"
-    }
-    utils.extend(options, args)
-    if(options.fast){
-        options.cmd1 = "14"
-        delete options.fast
-    }
-    sendSD(options)
 }
 function shiftQueue(){
-    var now  = new Date()
+    var now
     do{
         //Originally, we issued a setTimeout() when the item was pushed
         //to expire it, but the timer was unreliable; this do loop seems
         //more accurate.  Maybe the more timers Node tries to track, the
         //worse it does?  Docs warn to unreliability of timers.
         //http://nodejs.org/api/timers.html
+        //
+        //Because of that, maxAge and delay options are also handled
+        //in this manner rather than by setting timers.
+        now = new Date()
         var something_expired = false
         for(i in sent){
             if(sent[i].expiresAt < now){
@@ -99,38 +113,69 @@ function shiftQueue(){
         
     }while(something_expired)
 
+    if(!queue.length) return //nothing to do.
+    do{
+        //Similar to the expirations in the sent array, we need to
+        //check the maxAge and delay options in the queue array.
+        //assumed this would be more accurate than using timers.
+        now = new Date()
+        var something_expired = false
+        for(i in queue){
+            //if(i > 10) break //let's not waste time doing this; we'll get to 'em eventually.
+            if(queue[i].expireAfter && (queue[i].expireAfter < now.getTime())){
+                something_expired = i
+                break
+            }
+        }
+        if(something_expired){
+            var item = queue[something_expired]
+            queue.splice(something_expired, 1)
+            if(item.cbComplete) item.cbComplete("expired", item)
+        }
+        
+    }while(something_expired)
     if(!config.portIsOpen) return //can't do nothing.
-    if(!queue.length)      return //nothing to do.
     
+    now = new Date()
     if(plm_nak_timestamp){
-        var now = new Date()
+        //If we triggered a NAK, let's wait 3 seconds before trying again.
         if((now.getTime()-plm_nak_timestamp) < 3000) return
         plm_nak_timestamp = null
     }
     
-    var item = queue.shift()
-    var timer = utils.flags2Timer(item.flags)
-    now = new Date()
-    item.expiresAt = new Date(now.getTime() + timer)
+    var next_item = false
+    for(i in queue){
+        if(queue[i].runAfter < now.getTime()){
+            next_item = i; break
+        }
+    }
     
-    item.action()
-    sent.push(item)
+    if(next_item){
+        var item  = queue[next_item]; queue.splice(next_item, 1)
+        var timer = utils.flags2Timer(item.flags)
+        now = new Date()
+        item.expiresAt = new Date(now.getTime() + timer) //Not to be confused with expireAfter, this tracks a 'no reply' condition.
+        
+        item.action()
+        sent.push(item)
+    }
 }
 
 exports.connect = function connect(args) {
     var options = {
         port : config.port ? config.port : '/dev/ttyS0'
     }
+    
+    //We always want this to run because it'll handle the expirations.
+    config.queueInterval = setInterval(shiftQueue, SHIFT_QUEUE_INTERVAL)
+    
     utils.extend(options, args); config.port = options.port
 	plm = new PLM({port: options.port})
-	plm.on("disconnected", function(){
+    plm.on("disconnected", function(){
         config.portIsOpen = false
-        clearInterval(config.queueInterval)
 	})
 	plm.on("connected", function(){
 	    config.portIsOpen = true
-        clearInterval(config.queueInterval) //shouldn't ever be set at this stage, but just in case.
-	    config.queueInterval = setInterval(shiftQueue, SHIFT_QUEUE_INTERVAL)
 	})
 	plm.on('data', function(message){
         var hexStr  = (message.hex.join('')).toUpperCase()
