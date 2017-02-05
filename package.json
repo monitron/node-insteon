@@ -8,9 +8,9 @@
 	"homepage" : "https://github.com/gcanivet/node-insteon",
     "repository" : {
         "type" : "git",
-        "url" : "git://github.com/gcanivet/node-insteon.git"
+        "url" : "git://github.com/monitron/node-insteon.git"
     },
 	"dependencies" : {
-		"serialport" : "*"
+		"serialport" : "~4.0.7"
 	}
 }

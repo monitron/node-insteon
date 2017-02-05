@@ -10,7 +10,7 @@ var utils = require('./utils.js');
 var config = require('./config.js');
 var send = require('./send.js');
 var receive = require('./receive.js');
-var SerialPort = require('serialport').SerialPort;
+var SerialPort = require('serialport');
 
 /*
 ** Exported Interface 

@@ -245,6 +245,15 @@ var insteonJS = exports.insteonJS = function insteonJS(byteArray) {
             data['command2'] = data['hex'][10];
             data['message_flags_details'] = getMessageFlags(data['dec'][8]);
             break;
+        case 'INSTEON Extended Message Received':
+            data['from'] = data['hex'].slice(2, 5);
+            data['to'] = data['hex'].slice(5, 8);
+            data['message_flags'] = data['hex'][8];
+            data['command1'] = data['hex'][9];
+            data['command2'] = data['hex'][10];
+            data['user_data'] = data['hex'].slice(11, 25);
+            data['message_flags_details'] = getMessageFlags(data['dec'][8]);
+            break;
         case 'Send INSTEON Standard or Extended Message':
             data['to'] = data['hex'].slice(2,5);
             data['message_flags'] = data['hex'][5];
